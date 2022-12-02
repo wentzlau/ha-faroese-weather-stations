@@ -2,6 +2,8 @@
 Integration for Home Assistant that fetches weather information from faroese weather stations.
 At the moment it fetches weather data from weather station managed by [Landsverk](https://lv.fo) 
 
+![Home assistant dashboard](https://github.com/wentzlau/ha-faroese-energy-production/blob/d1f3f4e466f208bb9738a671f310cae541bc6c39/images/ha-dashboard.png)
+
 ## installation
 1) Create a subfolder called fo_weather_stations in the .homeassistant/custom_components folder. 
 2) Copy the contents of the ha-faroese-weather-stations/custom_components/fo_weather_stations folder into the newly created subfolder.

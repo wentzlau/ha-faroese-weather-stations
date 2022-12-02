@@ -23,7 +23,7 @@ from homeassistant.components import sensor
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
     CONF_MONITORED_CONDITIONS, CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    TEMP_FAHRENHEIT, TEMP_CELSIUS, LENGTH_INCHES,
+    TEMP_FAHRENHEIT, TEMP_CELSIUS, LENGTH_INCHES, SPEED_METERS_PER_SECOND, PRESSURE_HPA, DEGREE,
     LENGTH_FEET, LENGTH_MILLIMETERS, LENGTH_METERS, SPEED_MILES_PER_HOUR, SPEED_KILOMETERS_PER_HOUR,
     PERCENTAGE, PRESSURE_INHG, PRESSURE_MBAR, PRECIPITATION_INCHES_PER_HOUR, PRECIPITATION_MILLIMETERS_PER_HOUR,
     ATTR_ATTRIBUTION)
@@ -43,13 +43,7 @@ CONF_STATIONS = "stations"
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=5)
 CONF_ATTRIBUTION = "Data provided by the Landverk (lv.fo)"
-TEMPUNIT = 0
-LENGTHUNIT = 1
-ALTITUDEUNIT = 2
-SPEEDUNIT = 3
-PRESSUREUNIT = 4
-RATE = 5
-PERCENTAGEUNIT = 6
+
 
 
 class WeatherSensorConfig:
@@ -115,46 +109,7 @@ class WeatherCurrentConditionsSensorConfig(WeatherSensorConfig):
 
 
 
-# SENSOR_TYPES = {
-#     # current
-#     'obsTimeLocal': WeatherSensorConfig(
-#         'Local Observation Time', 'observations',
-#         value=lambda wu: wu.data['time'],
-#         icon="mdi:clock"),
-#     'humidity': WeatherSensorConfig(
-#         'Relative Humidity', 'observations',
-#         value=lambda wu: wu.data['hum'],
-#         unit_of_measurement='%',
-#         icon="mdi:water-percent",
-#         device_class="humidity"),
-#     'winddir': WeatherSensorConfig(
-#         'Wind Direction', 'observations',
-#         value=lambda wu: wu.data['dir'],
-#         unit_of_measurement='\u00b0',
-#         icon="mdi:weather-windy"),
-#     'windDirectionName': WeatherSensorConfig(
-#         'Wind Direction', 'observations',
-#         value=lambda wu: wind_direction_to_friendly_name(wu.data['dir']),
-#         unit_of_measurement='',
-#         icon="mdi:weather-windy"),
-#     'dewpt': WeatherCurrentConditionsSensorConfig(
-#         'Dewpoint', 'dew', 'mdi:water', TEMPUNIT),
-#     'pressure': WeatherCurrentConditionsSensorConfig(
-#         'Pressure', 'press1', "mdi:gauge", PRESSUREUNIT,
-#         device_class="pressure"),
-#     'temp': WeatherCurrentConditionsSensorConfig(
-#         'Temperature', 'temp2', "mdi:thermometer", TEMPUNIT,
-#         device_class="temperature"),
-#     'windGust': WeatherCurrentConditionsSensorConfig(
-#         'Wind Gust', 'gust2', "mdi:weather-windy", SPEEDUNIT),
-#     'windSpeed': WeatherCurrentConditionsSensorConfig(
-#         'Wind Speed', 'mean1', "mdi:weather-windy", SPEEDUNIT),
-#     'precipRate': WeatherCurrentConditionsSensorConfig(
-#         'Precipitation Rate', 'rain', "mdi:umbrella", LENGTHUNIT),
-#     'precipTotal': WeatherCurrentConditionsSensorConfig(
-#         'Precipitation Today', 'rainsum', "mdi:umbrella", LENGTHUNIT),
-    
-# }
+
 
 SENSOR_TYPES = {
     # current
@@ -166,7 +121,7 @@ SENSOR_TYPES = {
     },
     'winddir': {
         'name': 'Wind Direction',
-        'unit_of_measurement': '\u00b0',
+        'unit_of_measurement': DEGREE ,
         'icon':"mdi:weather-windy",
         'device_class': ""
     },
@@ -179,43 +134,43 @@ SENSOR_TYPES = {
     'dewpt': {
         'name': 'Dew point',
         'icon': 'mdi:water',
-        'unit_of_measurement': TEMPUNIT,
+        'unit_of_measurement': TEMP_CELSIUS,
         'device_class': ""
     },
     'pressure': {
         'name': 'Pressure',
         'icon': "mdi:gauge",
-        'unit_of_measurement': PRESSUREUNIT,
+        'unit_of_measurement': PRESSURE_HPA,
         'device_class': "pressure"
     },
     'temp':{
         'name': 'Temperature', 
         'icon': "mdi:thermometer",
-        'unit_of_measurement': TEMPUNIT,
+        'unit_of_measurement': TEMP_CELSIUS,
         'device_class': "temperature"
     },
     'windGust':{
         'name': 'Wind gust',
         'icon': "mdi:weather-windy",
-        'unit_of_measurement': SPEEDUNIT,
+        'unit_of_measurement': SPEED_METERS_PER_SECOND,
         'device_class': ""
     },
     'windSpeed': {
         'name': 'Wind speed',
         'icon': "mdi:weather-windy",
-        'unit_of_measurement': SPEEDUNIT,
+        'unit_of_measurement': SPEED_METERS_PER_SECOND,
         'device_class': ""
     },
     'precipRate':{
         'name':'Precipitation rate',
         'icon': "mdi:umbrella",
-        'unit_of_measurement': LENGTHUNIT,
+        'unit_of_measurement': PRECIPITATION_MILLIMETERS_PER_HOUR,
         'device_class': ""
     },
     'precipTotal': {
         'name': 'Precipitation today',
         'icon': "mdi:umbrella", 
-        'unit_of_measurement': LENGTHUNIT,
+        'unit_of_measurement': LENGTH_MILLIMETERS,
         'device_class': ""
     }
     
@@ -294,7 +249,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 async def async_setup_platform(hass: HomeAssistantType, config: ConfigType,
                                async_add_entities, discovery_info=None):
-    """Set up the WUnderground sensor."""
+    """Set up the sensor."""
     
     if hass.config.units is METRIC_SYSTEM:
         unit_system_api = 'm'
@@ -328,8 +283,8 @@ async def async_setup_platform(hass: HomeAssistantType, config: ConfigType,
 
 
 
-class WeatherSensor(Entity):
-    """Implementing the WUnderground sensor."""
+class WeatherSensor(SensorEntity):
+    """Implementing the sensor."""
 
     def __init__(self, hass: HomeAssistantType, rest, sensor_type, station_name, source, station_id, data_field, unique_id_base: str):
         """Initialize the sensor."""
@@ -340,6 +295,7 @@ class WeatherSensor(Entity):
         self.source = source
         self.station_id = station_id
         self._state = None
+        self._state_class = "measurement"
         self._attributes = {
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION,
         }
@@ -349,7 +305,7 @@ class WeatherSensor(Entity):
         # This is only the suggested entity id, it might get changed by
         # the entity registry later.
         self.entity_id = sensor.ENTITY_ID_FORMAT.format('fo_weather_' + source + '_' + station_id + '_' + sensor_type)
-        self._unique_id = "{},{},{}".format(source,unique_id_base, sensor_type)
+        self._unique_id = "a-{},{},{}".format(source,unique_id_base, sensor_type)
         self._device_class = self._cfg_expand("device_class")
 
     def _cfg_expand(self, what, default=None):
@@ -428,6 +384,10 @@ class WeatherSensor(Entity):
         """Return the units of measurement."""
         return self._device_class
 
+    @property
+    def state_class(self):
+        return self._state_class
+
     async def async_update(self):
         """Update current conditions."""
         await self.rest.async_update()
@@ -462,12 +422,13 @@ class LVWeatherData:
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        """Get the latest data from WUnderground."""
+        """Get the latest data from lv.fo."""
         headers = {'Accept-Encoding': 'gzip'}
         ns = {'ss':"urn:schemas-microsoft-com:office:spreadsheet", 'html':"http://www.w3.org/TR/REC-html40"}
         lv_url = "https://lv.fo/fr/excel.php"
         current_date = datetime.today()
         url = f"{lv_url}?station={self.lv_station}&year={current_date.year}&month={current_date.month}&day={current_date.day}"
+        weather_data = None
         try:
             with async_timeout.timeout(10):
                 weather_data = await self._session.get(url)
@@ -479,33 +440,36 @@ class LVWeatherData:
             _LOGGER.error("Check weather API %s", err.args)
         except (asyncio.TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.error("Error fetching weather data: %s", repr(err))
-        byte_data = bytearray()
-        while not weather_data.content.at_eof():
-            chunk = await weather_data.content.read(1024)
-            byte_data += chunk   
-        root = ET.fromstring(byte_data)
-        work_sheet = root.find("ss:Worksheet", ns)
-        table = work_sheet.find("ss:Table", ns)
-        row_values = []
-        for row in table.findall('ss:Row', ns):
-            cell_values = []
-            for cell in row.findall('ss:Cell', ns):
-                value = cell.find("ss:Data", ns)
-                value_type = value.attrib["{urn:schemas-microsoft-com:office:spreadsheet}Type"]
-                if value_type == 'String':
-                    cell_values.append(value.text)
-                if value_type == 'Number':
-                    cell_values.append(float(value.text))
-            row_values.append(cell_values)
-
-        idx = 0
-        data = {}
-        name_row = row_values[0]
-        value_row = row_values[1]
-        for cell in name_row:
-            if not cell == 'undef':
-                data[cell] = value_row[idx]
-            idx += 1
         
-        self.data = data
+        if weather_data:
+        
+            byte_data = bytearray()
+            while not weather_data.content.at_eof():
+                chunk = await weather_data.content.read(1024)
+                byte_data += chunk   
+            root = ET.fromstring(byte_data)
+            work_sheet = root.find("ss:Worksheet", ns)
+            table = work_sheet.find("ss:Table", ns)
+            row_values = []
+            for row in table.findall('ss:Row', ns):
+                cell_values = []
+                for cell in row.findall('ss:Cell', ns):
+                    value = cell.find("ss:Data", ns)
+                    value_type = value.attrib["{urn:schemas-microsoft-com:office:spreadsheet}Type"]
+                    if value_type == 'String':
+                        cell_values.append(value.text)
+                    if value_type == 'Number':
+                        cell_values.append(float(value.text))
+                row_values.append(cell_values)
+
+            idx = 0
+            data = {}
+            name_row = row_values[0]
+            value_row = row_values[1]
+            for cell in name_row:
+                if not cell == 'undef':
+                    data[cell] = value_row[idx]
+                idx += 1
+            
+            self.data = data
         
