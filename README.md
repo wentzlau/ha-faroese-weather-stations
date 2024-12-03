@@ -1,6 +1,6 @@
 # ha-faroese-weather-stations
 Integration for Home Assistant that fetches weather information from faroese weather stations.
-At the moment it fetches weather data from weather station managed by [Landsverk](https://lv.fo) 
+At the moment it fetches weather data from weather stations managed by [Landsverk](https://lv.fo) 
 ## Installation
 ### Via HACKS
 Add this repository to HACKS via HACKS/user defined repositories
