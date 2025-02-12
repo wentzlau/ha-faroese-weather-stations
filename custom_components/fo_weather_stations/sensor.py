@@ -10,25 +10,15 @@ import aiohttp
 import async_timeout
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
-    SensorStateClass,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.components import sensor
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_MONITORED_CONDITIONS, CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    TEMP_FAHRENHEIT, TEMP_CELSIUS, LENGTH_INCHES, SPEED_METERS_PER_SECOND, PRESSURE_HPA, DEGREE,
-    LENGTH_FEET, LENGTH_MILLIMETERS, LENGTH_METERS, SPEED_MILES_PER_HOUR, SPEED_KILOMETERS_PER_HOUR,
-    PERCENTAGE, PRESSURE_INHG, PRESSURE_MBAR, PRECIPITATION_INCHES_PER_HOUR, PRECIPITATION_MILLIMETERS_PER_HOUR,
-    ATTR_ATTRIBUTION)
-from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.entity import Entity
+    UnitOfTemperature, UnitOfLength, UnitOfSpeed, UnitOfPressure, UnitOfVolumetricFlux,
+     DEGREE, ATTR_ATTRIBUTION)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import Throttle
 import homeassistant.helpers.config_validation as cv
@@ -44,13 +34,11 @@ CONF_STATIONS = "stations"
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=5)
 CONF_ATTRIBUTION = "Data provided by the Landverk (lv.fo)"
 
-
-
 class WeatherSensorConfig:
     """Sensor Configuration.
     defines basic HA properties of the weather sensor and
     stores callbacks that can parse sensor values out of
-    the json data received by WU API.
+    the json data received by LV API.
     """
 
     def __init__(self, friendly_name, feature, value,
@@ -80,7 +68,6 @@ class WeatherSensorConfig:
         self.device_state_attributes = device_state_attributes or {}
         self.device_class = device_class
 
-
 class WeatherCurrentConditionsSensorConfig(WeatherSensorConfig):
     """Helper for defining sensor configurations for current conditions."""
 
@@ -107,10 +94,6 @@ class WeatherCurrentConditionsSensorConfig(WeatherSensorConfig):
             device_class=device_class
         )
 
-
-
-
-
 SENSOR_TYPES = {
     # current
     'humidity': {
@@ -134,43 +117,43 @@ SENSOR_TYPES = {
     'dewpt': {
         'name': 'Dew point',
         'icon': 'mdi:water',
-        'unit_of_measurement': TEMP_CELSIUS,
+        'unit_of_measurement': UnitOfTemperature.CELSIUS,
         'device_class': ""
     },
     'pressure': {
         'name': 'Pressure',
         'icon': "mdi:gauge",
-        'unit_of_measurement': PRESSURE_HPA,
+        'unit_of_measurement': UnitOfPressure.HPA,
         'device_class': "pressure"
     },
     'temp':{
         'name': 'Temperature', 
         'icon': "mdi:thermometer",
-        'unit_of_measurement': TEMP_CELSIUS,
+        'unit_of_measurement': UnitOfTemperature.CELSIUS,
         'device_class': "temperature"
     },
     'windGust':{
         'name': 'Wind gust',
         'icon': "mdi:weather-windy",
-        'unit_of_measurement': SPEED_METERS_PER_SECOND,
+        'unit_of_measurement': UnitOfSpeed.METERS_PER_SECOND,
         'device_class': ""
     },
     'windSpeed': {
         'name': 'Wind speed',
         'icon': "mdi:weather-windy",
-        'unit_of_measurement': SPEED_METERS_PER_SECOND,
+        'unit_of_measurement': UnitOfSpeed.METERS_PER_SECOND,
         'device_class': ""
     },
     'precipRate':{
         'name':'Precipitation rate',
         'icon': "mdi:umbrella",
-        'unit_of_measurement': PRECIPITATION_MILLIMETERS_PER_HOUR,
+        'unit_of_measurement': UnitOfVolumetricFlux.MILLIMETERS_PER_HOUR,
         'device_class': ""
     },
     'precipTotal': {
         'name': 'Precipitation today',
         'icon': "mdi:umbrella", 
-        'unit_of_measurement': LENGTH_MILLIMETERS,
+        'unit_of_measurement': UnitOfLength.MILLIMETERS,
         'device_class': ""
     }
     
@@ -250,13 +233,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 async def async_setup_platform(hass: HomeAssistantType, config: ConfigType,
                                async_add_entities, discovery_info=None):
     """Set up the sensor."""
-    
-    if hass.config.units is METRIC_SYSTEM:
-        unit_system_api = 'm'
-        unit_system = 'metric'
-    else:
-        unit_system_api = 'e'
-        unit_system = 'imperial'
 
     stations = config.get(CONF_STATIONS)
     _LOGGER.info("Weatherstations in config: %s", stations )
@@ -320,14 +296,13 @@ class WeatherSensor(SensorEntity):
             unit_of_measurement=sensor_info['unit_of_measurement'],
             device_class= sensor_info['device_class']
         )
-        #SENSOR_TYPES[self._condition]
         val = getattr(cfg, what)
         if not callable(val):
             return val
         try:
             val = val(self.rest)
         except (KeyError, IndexError, TypeError, ValueError) as err:
-            _LOGGER.warning("Failed to expand cfg from WU API."
+            _LOGGER.warning("Failed to expand cfg from LV API."
                             " Condition: %s Attr: %s Error: %s",
                             self._sensor_type, what, repr(err))
             val = default
@@ -343,7 +318,7 @@ class WeatherSensor(SensorEntity):
                 try:
                     self._attributes[attr] = callback(self.rest)
                 except (KeyError, IndexError, TypeError, ValueError) as err:
-                    _LOGGER.warning("Failed to update attrs from WU API."
+                    _LOGGER.warning("Failed to update attrs from LV API."
                                     " Condition: %s Attr: %s Error: %s",
                                     self._sensor_type, attr, repr(err))
             else:
